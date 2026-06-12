@@ -129,13 +129,20 @@ class SupabaseStore:
         self.key = settings.supabase_service_role_key
         self.bucket = settings.supabase_storage_bucket
 
+    def _headers(self, content_type: str = "application/json") -> dict[str, str]:
+        headers = {
+            "apikey": self.key,
+            "Content-Type": content_type,
+        }
+        # Legacy service_role keys are JWTs and must also be sent as Bearer tokens.
+        # New sb_secret_ keys are server-only API keys and should stay in apikey.
+        if self.key.startswith("eyJ") or self.key.count(".") == 2:
+            headers["Authorization"] = f"Bearer {self.key}"
+        return headers
+
     def _request(self, method: str, path: str, body: Any | None = None, headers: dict[str, str] | None = None) -> Any:
         payload = None
-        request_headers = {
-            "apikey": self.key,
-            "Authorization": f"Bearer {self.key}",
-            "Content-Type": "application/json",
-        }
+        request_headers = self._headers()
         if headers:
             request_headers.update(headers)
         if body is not None:
@@ -231,12 +238,7 @@ class SupabaseStore:
             request = urllib.request.Request(
                 upload_url,
                 data=path.read_bytes(),
-                headers={
-                    "apikey": self.key,
-                    "Authorization": f"Bearer {self.key}",
-                    "Content-Type": "image/jpeg",
-                    "x-upsert": "true",
-                },
+                headers={**self._headers("image/jpeg"), "x-upsert": "true"},
                 method="POST",
             )
             try:
@@ -253,12 +255,7 @@ class SupabaseStore:
         request = urllib.request.Request(
             f"{self.url}/storage/v1/object/{self.bucket}/{object_path}",
             data=cropped_path.read_bytes(),
-            headers={
-                "apikey": self.key,
-                "Authorization": f"Bearer {self.key}",
-                "Content-Type": "image/jpeg",
-                "x-upsert": "true",
-            },
+            headers={**self._headers("image/jpeg"), "x-upsert": "true"},
             method="POST",
         )
         try:
