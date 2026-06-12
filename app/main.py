@@ -22,6 +22,11 @@ store = create_store()
 static_dir = BASE_DIR / "static"
 data_dir = settings.data_dir
 
+data_dir.mkdir(parents=True, exist_ok=True)
+(data_dir / "photos" / "original").mkdir(parents=True, exist_ok=True)
+(data_dir / "photos" / "cropped").mkdir(parents=True, exist_ok=True)
+(data_dir / "photos" / "thumbs").mkdir(parents=True, exist_ok=True)
+
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.mount("/data", StaticFiles(directory=data_dir), name="data")
 
